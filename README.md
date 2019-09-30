@@ -1,5 +1,5 @@
 # ec-exp-openssl-benchmark
-Benchmark for massive exponential computations using openssl.
+Benchmark for massive elliptic curve exponential computations using openssl.
 
 Use Ubuntu. Install openssl-dev
 ``
