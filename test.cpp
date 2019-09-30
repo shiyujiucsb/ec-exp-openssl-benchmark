@@ -9,12 +9,19 @@
 
 typedef unsigned char byte;
 
+// EC name
+// TODO: Decide which curve to use.
+//       224r1 has the least time cost so far.
+#define CURVE_NAME NID_secp224r1
+// Number of bits in exponent
 constexpr int N_BITS = 512;
+// Number of iterations for testing
+constexpr int N_ITERS = 10000;
 
 EC_GROUP *InitializeCurve() {
   EC_GROUP *curve;
 
-  if ((curve = EC_GROUP_new_by_curve_name(NID_secp224r1)) == nullptr) {
+  if ((curve = EC_GROUP_new_by_curve_name(CURVE_NAME)) == nullptr) {
     std::cerr << "ERROR: Curve init failed." << std::endl;
     return nullptr;
   }
@@ -22,6 +29,7 @@ EC_GROUP *InitializeCurve() {
   return curve;
 }
 
+/* Generate random big numbers. */
 std::vector<BIGNUM*> GenRandomBigNums(const int num_iters) {
   std::vector<BIGNUM*> results(num_iters);
 
@@ -55,9 +63,9 @@ std::vector<EC_POINT*> BruteForce(
 std::vector<std::vector<EC_POINT*>> InitializeDpTable(
 		const EC_GROUP* const curve,
 		BN_CTX* ctx) {
-  const int n_bytes = N_BITS / 8;
-  const int n_combs = (int(1) << 8);
-  byte* exponent = new byte[n_bytes];
+  constexpr int n_bytes = N_BITS / 8;
+  constexpr int n_combs = (int(1) << 8);
+  byte exponent[n_bytes];
 
   std::vector<std::vector<EC_POINT*>> dp(n_bytes,
 		  std::vector<EC_POINT*>(n_combs));
@@ -73,7 +81,6 @@ std::vector<std::vector<EC_POINT*>> InitializeDpTable(
     }
   }
 
-  delete[] exponent;
   return dp;
 }
 
@@ -87,8 +94,8 @@ std::vector<EC_POINT*> DpMethod(
   std::vector<EC_POINT*> results;
   results.reserve(N);
 
-  const int n_bytes = N_BITS / 8;
-  byte* exponent = new byte[n_bytes];
+  constexpr int n_bytes = N_BITS / 8;
+  byte exponent[n_bytes];
   for (int i = 0; i < N; i++) {
     const int len_used = BN_bn2bin(exponents[i], exponent);  // big-endian
     assert(len_used <= n_bytes);
@@ -101,7 +108,6 @@ std::vector<EC_POINT*> DpMethod(
     results.emplace_back(res);
   }
 
-  delete[] exponent;
   return results;
 }
 
@@ -122,9 +128,8 @@ bool BigNumVectorCmp(const EC_GROUP* const curve,
 }
 
 int main() {
+  constexpr int num_iters = N_ITERS;
   const EC_GROUP* curve = InitializeCurve();
-  /* Number of iterations for testing */
-  const int num_iters = 10000;
 
   BN_CTX *ctx = BN_CTX_new();
   std::vector<BIGNUM*> exponents = GenRandomBigNums(num_iters);
